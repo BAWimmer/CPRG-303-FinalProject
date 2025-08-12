@@ -47,6 +47,7 @@ export default function ExpensesPage() {
     description: "",
     amount: "",
   });
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -75,6 +76,13 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryName]: !prev[categoryName],
+    }));
   };
 
   const getCategoryData = (categoryName: string) => {
@@ -256,31 +264,37 @@ export default function ExpensesPage() {
 
   const renderCategorySection = ({ item: category }: any) => (
     <View style={styles.categorySection}>
-      <View
+      <TouchableOpacity
         style={[
           styles.categoryHeader,
-          { backgroundColor: category.color + "20" },
-        ]}
+          {backgroundColor: category.color + "20" }]}
+          onPress={() => toggleCategory(category.name)}
+          activeOpacity={0.7}
       >
         <View style={styles.categoryInfo}>
+          <Text style={styles.categoryArrow}>
+            {expandedCategories[category.name] ? "▾" : "►"}
+          </Text>
           <Text style={styles.categoryIcon}>{category.icon}</Text>
           <Text style={styles.categoryName}>{category.name}</Text>
         </View>
         <Text style={[styles.categoryTotal, { color: category.color }]}>
           ${category.total.toFixed(2)}
         </Text>
-      </View>
-
-      {category.expenses.length > 0 ? (
-        <FlatList
-          data={category.expenses}
-          renderItem={renderExpenseItem}
-          keyExtractor={(item, index) => item.id || index.toString()}
-          scrollEnabled={false}
-        />
-      ) : (
-        <Text style={styles.noExpenses}>No expenses in this category</Text>
-      )}
+      </TouchableOpacity>
+      
+      {expandedCategories[category.name] ? (
+        category.expenses.length > 0 ? (
+          <FlatList
+            data={category.expenses}
+            renderItem={renderExpenseItem}
+            keyExtractor={(item, index) => item.id || index.toString()}
+            scrollEnabled={false}
+          />
+        ) : (
+          <Text style={styles.noExpenses}>No expenses in this category</Text>
+        )
+      ) : null}
     </View>
   );
 
@@ -559,6 +573,11 @@ const styles = StyleSheet.create({
   categoryInfo: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  categoryArrow: {
+    fontSize: 18,
+    marginRight: 8,
+    color: "#4ecca3",
   },
   categoryIcon: {
     fontSize: 24,
