@@ -2,9 +2,8 @@
 
 ## Expenses Page:
 
-1. Dropdowns for each category? Maybe clicking a button to bring you to a list of all the expenses for that type.
-2. Deleting an expense is currently bugged.
-3. UI changes?
+1. Deleting an expense is currently bugged.
+2. UI changes?
 
 ## Income Page
 
