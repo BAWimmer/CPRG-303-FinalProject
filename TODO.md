@@ -1,9 +1,5 @@
 ## TODOS
 
-## Signin/Signup Pages
-
-1. Error message display (notifiactions for when user has an incorrect password, didn't input something into a field, etc) Current error messages are only popups on mobile.
-
 ## Expenses Page:
 
 1. Dropdowns for each category? Maybe clicking a button to bring you to a list of all the expenses for that type.

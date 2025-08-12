@@ -24,6 +24,7 @@ export default function SignInPage() {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Test Firebase connection on component mount
   useEffect(() => {
@@ -46,17 +47,18 @@ export default function SignInPage() {
 
   const validateForm = () => {
     if (!formData.email.trim()) {
-      Alert.alert("Error", "Please enter your email");
+      setErrorMessage("Please enter your email");
       return false;
     }
     if (!formData.email.includes("@")) {
-      Alert.alert("Error", "Please enter a valid email address");
+      setErrorMessage("Please enter a valid email address");
       return false;
     }
     if (!formData.password.trim()) {
-      Alert.alert("Error", "Please enter your password");
+      setErrorMessage("Please enter your password");
       return false;
     }
+    setErrorMessage("");
     return true;
   };
 
@@ -88,6 +90,13 @@ export default function SignInPage() {
             Sign in to continue tracking your expenses
           </Text>
         </View>
+
+        {/* Error */}
+        {errorMessage ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
 
         {/* Form */}
         <View style={styles.form}>
@@ -176,6 +185,19 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: "#a8a8a8",
+    textAlign: "center",
+  },
+  errorContainer: {
+    backgroundColor: "rgba(247, 71, 71, 0.68)",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "ff4d4d",
+  },
+  errorText: {
+    color: "ff4d4d",
+    fontSize: 14,
     textAlign: "center",
   },
   form: {
