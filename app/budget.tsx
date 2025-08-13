@@ -43,7 +43,6 @@ export default function BudgetPage() {
     null
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [totalBudgetInput, setTotalBudgetInput] = useState("");
   const [categoryBudgets, setCategoryBudgets] = useState<{
     [key: string]: string;
   }>({});
@@ -89,7 +88,6 @@ export default function BudgetPage() {
         setBudgetSummary(summary);
 
         // Set form data
-        setTotalBudgetInput(monthBudget.totalBudget.toString());
         const categoryBudgetStrings: { [key: string]: string } = {};
         Object.keys(monthBudget.categoryBudgets).forEach((category) => {
           categoryBudgetStrings[category] =
@@ -99,7 +97,6 @@ export default function BudgetPage() {
       } else {
         // Initialize empty budget
         setBudgetSummary(null);
-        setTotalBudgetInput("");
         const initialCategoryBudgets: { [key: string]: string } = {};
         EXPENSE_CATEGORIES.forEach((category) => {
           initialCategoryBudgets[category.name] = "";
@@ -120,48 +117,27 @@ export default function BudgetPage() {
       return;
     }
 
-    const totalBudget = parseFloat(totalBudgetInput);
-    if (isNaN(totalBudget) || totalBudget < 0) {
-      Alert.alert("Error", "Please enter a valid total budget amount");
-      return;
-    }
-
     try {
       const categoryBudgetNumbers: { [key: string]: number } = {};
-      let totalCategoryBudgets = 0;
+      let totalBudget = 0;
 
       Object.keys(categoryBudgets).forEach((category) => {
         const amount = parseFloat(categoryBudgets[category] || "0");
         categoryBudgetNumbers[category] = isNaN(amount) ? 0 : amount;
-        totalCategoryBudgets += categoryBudgetNumbers[category];
+        totalBudget += categoryBudgetNumbers[category];
       });
 
-      if (totalCategoryBudgets > totalBudget) {
-        Alert.alert(
-          "Warning",
-          `Category budgets ($${totalCategoryBudgets.toFixed(2)}) exceed total budget ($${totalBudget.toFixed(2)}). Do you want to continue?`,
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Continue", onPress: saveBudgetData },
-          ]
-        );
-      } else {
-        await saveBudgetData();
-      }
+      const budgetData = {
+        userId: user.uid,
+        month: currentMonth,
+        totalBudget, 
+        categoryBudgets: categoryBudgetNumbers,
+      };
 
-      async function saveBudgetData() {
-        const budgetData = {
-          userId: user!.uid,
-          month: currentMonth,
-          totalBudget,
-          categoryBudgets: categoryBudgetNumbers,
-        };
-
-        await BudgetService.setBudget(budgetData);
-        setIsModalVisible(false);
-        await loadBudgetData();
-        Alert.alert("Success", "Budget saved successfully");
-      }
+      await BudgetService.setBudget(budgetData);
+      setIsModalVisible(false);
+      await loadBudgetData();
+      Alert.alert("Success", "Budget saved successfully");
     } catch (error: any) {
       Alert.alert("Error", "Failed to save budget");
     }
@@ -169,7 +145,6 @@ export default function BudgetPage() {
 
   const openBudgetModal = () => {
     if (budget) {
-      setTotalBudgetInput(budget.totalBudget.toString());
       const categoryBudgetStrings: { [key: string]: string } = {};
       Object.keys(budget.categoryBudgets).forEach((category) => {
         categoryBudgetStrings[category] =
@@ -412,14 +387,13 @@ export default function BudgetPage() {
           <ScrollView style={styles.modalContent}>
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Total Monthly Budget</Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="0.00"
-                placeholderTextColor="#666"
-                value={totalBudgetInput}
-                onChangeText={setTotalBudgetInput}
-                keyboardType="numeric"
-              />
+              <Text style={styles.totalBudgetText}>
+                $
+                {Object.values(categoryBudgets)
+                  .map((val) => parseFloat(val) || 0)
+                  .reduce((acc, cur) => acc + cur, 0)
+                  .toFixed(2)}
+              </Text>
             </View>
 
             <Text style={styles.formLabel}>Category Budgets</Text>
@@ -748,5 +722,15 @@ const styles = StyleSheet.create({
     borderColor: "#2a3a5c",
     width: 80,
     textAlign: "right",
+  },
+  totalBudgetText: {
+    backgroundColor: "#16213e",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#2a3a5c",
   },
 });
