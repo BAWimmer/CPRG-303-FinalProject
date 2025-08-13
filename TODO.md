@@ -2,16 +2,12 @@
 
 ## Expenses Page:
 
-1. Deleting an expense is currently bugged.
+1. Deleting an expense is currently bugged (ONLY ON PC, works fine on mobile testing)
 2. UI changes?
 
 ## Income Page
 
 1. Similar to expenses page - maybe include similar UI for viewing a list of the different income sources.
-
-## Budget Page
-
-1. Mostly incomplete, maybe let the add logic to add your total budget automatically while you input individual budgets for each section instead of manually deciding the budget total.
 
 ## Other
 
