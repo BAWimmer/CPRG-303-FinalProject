@@ -7,7 +7,7 @@
 
 ## Income Page
 
-1. Similar to expenses page - maybe include similar UI for viewing a list of the different income sources.
+1. Similar to expenses page - maybe include similar UI for viewing a list of the different income sources. (works fine also on mobile, but not pc)
 
 ## Other
 
