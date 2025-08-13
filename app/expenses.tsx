@@ -4,15 +4,14 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Modal,
+  FlatList, KeyboardAvoidingView, Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { ExpenseService } from "../services/expenseService";
@@ -371,86 +370,90 @@ export default function ExpensesPage() {
         transparent={true}
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingExpense ? "Edit Expense" : "Add New Expense"}
-            </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{flex: 1, justifyContent: "flex-end"}} >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {editingExpense ? "Edit Expense" : "Add New Expense"}
+              </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Category</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categorySelector}
-              >
-                {CATEGORIES.map((category) => (
-                  <TouchableOpacity
-                    key={category.name}
-                    style={[
-                      styles.categoryOption,
-                      formData.category === category.name &&
-                        styles.selectedCategory,
-                    ]}
-                    onPress={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        category: category.name,
-                      }))
-                    }
-                  >
-                    <Text style={styles.categoryOptionIcon}>
-                      {category.icon}
-                    </Text>
-                    <Text style={styles.categoryOptionText}>
-                      {category.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.inputLabel}>Category</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.categorySelector}
+                >
+                  {CATEGORIES.map((category) => (
+                    <TouchableOpacity
+                      key={category.name}
+                      style={[
+                        styles.categoryOption,
+                        formData.category === category.name &&
+                          styles.selectedCategory,
+                      ]}
+                      onPress={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          category: category.name,
+                        }))
+                      }
+                    >
+                      <Text style={styles.categoryOptionIcon}>
+                        {category.icon}
+                      </Text>
+                      <Text style={styles.categoryOptionText}>
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter expense description"
+                  placeholderTextColor="#666"
+                  value={formData.description}
+                  onChangeText={(value) =>
+                    setFormData((prev) => ({ ...prev, description: value }))
+                  }
+                />
+
+                <Text style={styles.inputLabel}>Amount ($)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0.00"
+                  placeholderTextColor="#666"
+                  value={formData.amount}
+                  onChangeText={(value) =>
+                    setFormData((prev) => ({ ...prev, amount: value }))
+                  }
+                  keyboardType="decimal-pad"
+                />
               </ScrollView>
 
-              <Text style={styles.inputLabel}>Description</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter expense description"
-                placeholderTextColor="#666"
-                value={formData.description}
-                onChangeText={(value) =>
-                  setFormData((prev) => ({ ...prev, description: value }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>Amount ($)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0.00"
-                placeholderTextColor="#666"
-                value={formData.amount}
-                onChangeText={(value) =>
-                  setFormData((prev) => ({ ...prev, amount: value }))
-                }
-                keyboardType="decimal-pad"
-              />
-            </ScrollView>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setIsModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveExpense}
-              >
-                <Text style={styles.saveButtonText}>
-                  {editingExpense ? "Update" : "Add"}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setIsModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleSaveExpense}
+                >
+                  <Text style={styles.saveButtonText}>
+                    {editingExpense ? "Update" : "Add"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
