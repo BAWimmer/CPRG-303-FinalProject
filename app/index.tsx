@@ -40,7 +40,7 @@ export default function LandingPage() {
             📊 Categorized expense tracking
           </Text>
           <Text style={styles.featureItem}>
-            📝 Easy add/edit/remove expenses
+            📝 Easy adding and editing of expenses
           </Text>
           <Text style={styles.featureItem}>
             📱 Simple and intuitive interface

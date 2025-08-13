@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -24,7 +23,11 @@ export default function SignInPage() {
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+    general: "",
+  });
 
   // Test Firebase connection on component mount
   useEffect(() => {
@@ -43,34 +46,76 @@ export default function SignInPage() {
       ...prev,
       [field]: value,
     }));
+    // Clear error message when user starts typing
+    if (errors.email || errors.password || errors.general) {
+      setErrors({ email: "", password: "", general: "" });
+    }
   };
 
   const validateForm = () => {
+    const newErrors = { email: "", password: "", general: "" };
+    let isValid = true;
+
     if (!formData.email.trim()) {
-      setErrorMessage("Please enter your email");
-      return false;
+      newErrors.email = "Please enter your email";
+      isValid = false;
+    } else if (!formData.email.includes("@")) {
+      newErrors.email = "Please enter a valid email address";
+      isValid = false;
     }
-    if (!formData.email.includes("@")) {
-      setErrorMessage("Please enter a valid email address");
-      return false;
-    }
+
     if (!formData.password.trim()) {
-      setErrorMessage("Please enter your password");
-      return false;
+      newErrors.password = "Please enter your password";
+      isValid = false;
     }
-    setErrorMessage("");
-    return true;
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSignIn = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
+    setErrors({ email: "", password: "", general: "" }); // Clear any existing errors
+
     try {
-      await signIn(formData.email, formData.password);
+      // Wrap the signIn call to ensure no unhandled promise rejections
+      const signInPromise = signIn(formData.email, formData.password);
+      await signInPromise.catch((error) => {
+        // This catch ensures the promise rejection is handled
+        throw error;
+      });
       router.push("/expenses");
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      // Prevent any error bubbling that might cause popups
+      console.log("Sign in error caught and handled:", error);
+
+      // Map Firebase errors to user-friendly messages
+      let emailError = "";
+      let passwordError = "";
+
+      const errorCode = error?.code || "";
+      const errorMessage = error?.message || "";
+
+      if (
+        errorCode === "auth/invalid-credential" ||
+        errorCode === "auth/user-not-found" ||
+        errorCode === "auth/wrong-password" ||
+        errorMessage.includes("invalid-credential")
+      ) {
+        // For security, we don't want to reveal if email exists or not
+        emailError = "Invalid username or password";
+        passwordError = "Invalid username or password";
+      } else if (errorCode === "auth/invalid-email") {
+        emailError = "Please enter a valid email address";
+      } else if (errorCode === "auth/too-many-requests") {
+        emailError = "Too many failed attempts. Please try again later.";
+      } else {
+        emailError = "Sign in failed. Please try again.";
+      }
+
+      setErrors({ email: emailError, password: passwordError, general: "" });
     } finally {
       setLoading(false);
     }
@@ -79,10 +124,14 @@ export default function SignInPage() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
@@ -91,19 +140,12 @@ export default function SignInPage() {
           </Text>
         </View>
 
-        {/* Error */}
-        {errorMessage ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
-
         {/* Form */}
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.email ? styles.inputError : null]}
               placeholder="Enter your email"
               placeholderTextColor="#666"
               value={formData.email}
@@ -111,18 +153,24 @@ export default function SignInPage() {
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            {errors.email ? (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.password ? styles.inputError : null]}
               placeholder="Enter your password"
               placeholderTextColor="#666"
               value={formData.password}
               onChangeText={(value) => handleInputChange("password", value)}
               secureTextEntry
             />
+            {errors.password ? (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            ) : null}
           </View>
 
           <TouchableOpacity style={styles.forgotPassword}>
@@ -170,6 +218,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
+    paddingBottom: 20,
+    minHeight: "100%",
   },
   header: {
     alignItems: "center",
@@ -196,9 +246,9 @@ const styles = StyleSheet.create({
     borderColor: "ff4d4d",
   },
   errorText: {
-    color: "ff4d4d",
-    fontSize: 14,
-    textAlign: "center",
+    color: "#ff4d4d",
+    fontSize: 12,
+    marginTop: 4,
   },
   form: {
     flex: 1,
@@ -234,6 +284,10 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
       },
     }),
+  },
+  inputError: {
+    borderColor: "#ff4d4d",
+    borderWidth: 1,
   },
   forgotPassword: {
     alignItems: "flex-end",

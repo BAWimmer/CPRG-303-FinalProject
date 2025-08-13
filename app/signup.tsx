@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,6 +24,13 @@ export default function SignUpPage() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    general: "",
+  });
 
   // Redirect authenticated users
   useEffect(() => {
@@ -38,42 +44,58 @@ export default function SignUpPage() {
       ...prev,
       [field]: value,
     }));
+    // Clear error for this field when user starts typing
+    if (errors[field as keyof typeof errors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
   };
 
   const validateForm = () => {
+    const newErrors = {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      general: "",
+    };
+
     if (!formData.name.trim()) {
-      Alert.alert("Error", "Please enter your name");
-      return false;
+      newErrors.name = "Please enter your name";
     }
     if (!formData.email.trim()) {
-      Alert.alert("Error", "Please enter your email");
-      return false;
-    }
-    if (!formData.email.includes("@")) {
-      Alert.alert("Error", "Please enter a valid email address");
-      return false;
+      newErrors.email = "Please enter your email";
+    } else if (!formData.email.includes("@")) {
+      newErrors.email = "Please enter a valid email address";
     }
     if (formData.password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long");
-      return false;
+      newErrors.password = "Password must be at least 6 characters long";
     }
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return false;
+      newErrors.confirmPassword = "Passwords do not match";
     }
-    return true;
+
+    setErrors(newErrors);
+
+    // Return true if no errors
+    return Object.values(newErrors).every((error) => error === "");
   };
 
   const handleSignUp = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
+    // Clear any previous general errors
+    setErrors((prev) => ({ ...prev, general: "" }));
+
     try {
       await signUp(formData.name, formData.email, formData.password);
       // Don't show alert or navigate immediately - let the auth state change handle it
       router.push("/expenses");
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      setErrors((prev) => ({ ...prev, general: error.message }));
     } finally {
       setLoading(false);
     }
@@ -82,10 +104,14 @@ export default function SignUpPage() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
@@ -106,6 +132,9 @@ export default function SignUpPage() {
               onChangeText={(value) => handleInputChange("name", value)}
               autoCapitalize="words"
             />
+            {errors.name ? (
+              <Text style={styles.errorText}>{errors.name}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
@@ -119,6 +148,9 @@ export default function SignUpPage() {
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            {errors.email ? (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
@@ -131,6 +163,9 @@ export default function SignUpPage() {
               onChangeText={(value) => handleInputChange("password", value)}
               secureTextEntry
             />
+            {errors.password ? (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
@@ -145,7 +180,14 @@ export default function SignUpPage() {
               }
               secureTextEntry
             />
+            {errors.confirmPassword ? (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            ) : null}
           </View>
+
+          {errors.general ? (
+            <Text style={styles.errorText}>{errors.general}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.signUpButton, loading && styles.disabledButton]}
@@ -188,6 +230,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
+    paddingBottom: 20,
+    minHeight: "100%",
   },
   header: {
     alignItems: "center",
@@ -289,5 +333,11 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: "#4ecca3",
     fontSize: 16,
+  },
+  errorText: {
+    color: "#ff6b6b",
+    fontSize: 14,
+    marginTop: 5,
+    marginLeft: 5,
   },
 });

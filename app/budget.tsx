@@ -182,7 +182,6 @@ export default function BudgetPage() {
         });
         setCategoryBudgets(categoryBudgetStrings);
       } else {
-        // Total mode - set the total budget amount
         setTotalBudgetAmount(budget.totalBudget.toString());
       }
     } else {
@@ -197,6 +196,28 @@ export default function BudgetPage() {
     if (percentage >= 100) return "#ff6b6b";
     if (percentage >= 80) return "#feca57";
     return "#4ecca3";
+  };
+
+  const getMonthOptions = () => {
+    const months = [];
+    const currentDate = new Date();
+
+    // Generate options for the current month and the past 11 months (1 year total)
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i,
+        1
+      );
+      const yearMonth = date.toISOString().slice(0, 7);
+      const monthName = date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+      });
+      months.push({ value: yearMonth, label: monthName });
+    }
+
+    return months;
   };
 
   const handleLogout = async () => {
@@ -236,6 +257,36 @@ export default function BudgetPage() {
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Month Selector */}
+      <View style={styles.monthSelectorSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.monthScrollView}
+          contentContainerStyle={styles.monthScrollContent}
+        >
+          {getMonthOptions().map((month) => (
+            <TouchableOpacity
+              key={month.value}
+              style={[
+                styles.monthOption,
+                currentMonth === month.value && styles.selectedMonthOption,
+              ]}
+              onPress={() => setCurrentMonth(month.value)}
+            >
+              <Text
+                style={[
+                  styles.monthOptionText,
+                  currentMonth === month.value && styles.selectedMonthText,
+                ]}
+              >
+                {month.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Navigation */}
@@ -359,7 +410,16 @@ export default function BudgetPage() {
                               </Text>
                             </View>
                             <View style={styles.categoryAmounts}>
-                              <Text style={styles.categorySpent}>
+                              <Text
+                                style={[
+                                  styles.categorySpent,
+                                  {
+                                    color: getProgressColor(
+                                      categoryData.percentageUsed
+                                    ),
+                                  },
+                                ]}
+                              >
                                 ${categoryData.spent.toFixed(2)}
                               </Text>
                               <Text style={styles.categoryBudgeted}>
@@ -415,7 +475,16 @@ export default function BudgetPage() {
                               </Text>
                             </View>
                             <View style={styles.categoryAmounts}>
-                              <Text style={styles.categorySpent}>
+                              <Text
+                                style={[
+                                  styles.categorySpent,
+                                  {
+                                    color: getProgressColor(
+                                      categoryData.percentageUsed
+                                    ),
+                                  },
+                                ]}
+                              >
                                 ${categoryData.spent.toFixed(2)}
                               </Text>
                             </View>
@@ -575,38 +644,38 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 40,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#ffffff",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 12,
     color: "#a8a8a8",
     marginTop: 4,
   },
   logoutButton: {
     backgroundColor: "#ff6b6b",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   logoutText: {
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   navigation: {
     flexDirection: "row",
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   navButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: "center",
     backgroundColor: "#16213e",
     marginHorizontal: 4,
@@ -629,91 +698,91 @@ const styles = StyleSheet.create({
   },
   noBudgetContainer: {
     alignItems: "center",
-    paddingVertical: 60,
+    paddingVertical: 40,
   },
   noBudgetTitle: {
-    fontSize: 24,
+    fontSize: 20,
     color: "#ffffff",
     fontWeight: "bold",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   noBudgetSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#a8a8a8",
     textAlign: "center",
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: 24,
+    lineHeight: 20,
   },
   createBudgetButton: {
     backgroundColor: "#4ecca3",
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 12,
   },
   createBudgetButtonText: {
     color: "#1a1a2e",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   overviewSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   overviewCard: {
     backgroundColor: "#16213e",
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
   },
   overviewRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   overviewLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#a8a8a8",
   },
   overviewValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#ffffff",
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: "#2a3a5c",
-    borderRadius: 4,
-    marginVertical: 16,
+    borderRadius: 3,
+    marginVertical: 12,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 3,
   },
   progressText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#a8a8a8",
     textAlign: "center",
   },
   categoriesSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   categoryCard: {
     backgroundColor: "#16213e",
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 8,
   },
   categoryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   categoryInfo: {
     flexDirection: "row",
@@ -721,11 +790,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    fontSize: 18,
+    marginRight: 10,
   },
   categoryName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#ffffff",
   },
@@ -734,39 +803,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categorySpent: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#ff6b6b",
   },
   categoryBudgeted: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#a8a8a8",
   },
   categoryProgressBar: {
-    height: 6,
+    height: 4,
     backgroundColor: "#2a3a5c",
-    borderRadius: 3,
-    marginBottom: 8,
+    borderRadius: 2,
+    marginBottom: 6,
     overflow: "hidden",
   },
   categoryProgressFill: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 2,
   },
   categoryProgressText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "500",
   },
   editBudgetButton: {
     backgroundColor: "#45b7d1",
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   editBudgetButtonText: {
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   modalContainer: {
@@ -899,5 +968,45 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     borderWidth: 1,
     borderColor: "#2a3a5c",
+  },
+  monthSelectorSection: {
+    backgroundColor: "#16213e",
+    margin: 20,
+    padding: 16,
+    borderRadius: 12,
+  },
+  monthSelectorLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 12,
+  },
+  monthScrollView: {
+    flexGrow: 0,
+  },
+  monthScrollContent: {
+    paddingHorizontal: 4,
+  },
+  monthOption: {
+    backgroundColor: "#1a1a2e",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#333366",
+  },
+  selectedMonthOption: {
+    backgroundColor: "#4ecca3",
+    borderColor: "#4ecca3",
+  },
+  monthOptionText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  selectedMonthText: {
+    color: "#1a1a2e",
+    fontWeight: "bold",
   },
 });

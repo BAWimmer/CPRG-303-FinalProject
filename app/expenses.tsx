@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { ExpenseService } from "../services/expenseService";
+const { useState, useEffect } = React;
 
 interface Expense {
   id?: string;
@@ -43,6 +44,9 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().toISOString().slice(0, 7) // Current month in YYYY-MM format
+  );
   const [formData, setFormData] = useState({
     category: "Food & Dining",
     description: "",
@@ -89,7 +93,13 @@ export default function ExpensesPage() {
   };
 
   const getExpensesByCategory = () => {
-    const grouped = expenses.reduce(
+    // Filter expenses by selected month
+    const filteredExpenses = expenses.filter((expense) => {
+      const expenseMonth = expense.date.slice(0, 7); // Extract YYYY-MM from date
+      return expenseMonth === selectedMonth;
+    });
+
+    const grouped = filteredExpenses.reduce(
       (acc, expense) => {
         if (!acc[expense.category]) {
           acc[expense.category] = [];
@@ -111,7 +121,50 @@ export default function ExpensesPage() {
   };
 
   const getTotalExpenses = () => {
-    return expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    // Filter expenses by selected month for total calculation
+    const filteredExpenses = expenses.filter((expense) => {
+      const expenseMonth = expense.date.slice(0, 7);
+      return expenseMonth === selectedMonth;
+    });
+    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  };
+
+  const getMonthOptions = () => {
+    const months = [];
+    const currentDate = new Date();
+
+    // Generate options for the current month and the past 11 months (1 year total)
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - i,
+        1
+      );
+      const yearMonth = date.toISOString().slice(0, 7);
+      const monthName = date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+      });
+      months.push({ value: yearMonth, label: monthName });
+    }
+
+    return months;
+  };
+
+  const formatSelectedMonth = () => {
+    const [year, month] = selectedMonth.split("-");
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+    });
+  };
+
+  const getExpensesCountForMonth = () => {
+    return expenses.filter((expense) => {
+      const expenseMonth = expense.date.slice(0, 7);
+      return expenseMonth === selectedMonth;
+    }).length;
   };
 
   const handleAddExpense = () => {
@@ -321,8 +374,40 @@ export default function ExpensesPage() {
 
       {/* Total Expenses */}
       <View style={styles.totalSection}>
-        <Text style={styles.totalLabel}>Total Monthly Expenses</Text>
+        <Text style={styles.totalLabel}>
+          Total Expenses for {formatSelectedMonth()}
+        </Text>
         <Text style={styles.totalAmount}>${getTotalExpenses().toFixed(2)}</Text>
+      </View>
+
+      {/* Month Selector */}
+      <View style={styles.monthSelectorSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.monthScrollView}
+          contentContainerStyle={styles.monthScrollContent}
+        >
+          {getMonthOptions().map((month) => (
+            <TouchableOpacity
+              key={month.value}
+              style={[
+                styles.monthOption,
+                selectedMonth === month.value && styles.selectedMonthOption,
+              ]}
+              onPress={() => setSelectedMonth(month.value)}
+            >
+              <Text
+                style={[
+                  styles.monthOptionText,
+                  selectedMonth === month.value && styles.selectedMonthText,
+                ]}
+              >
+                {month.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Navigation */}
@@ -467,23 +552,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 40,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#4ecca3",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#a8a8a8",
   },
   logoutButton: {
     backgroundColor: "#ff6b6b",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   logoutText: {
     color: "#ffffff",
@@ -492,8 +577,8 @@ const styles = StyleSheet.create({
   totalSection: {
     backgroundColor: "#16213e",
     marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
+    marginBottom: 12,
+    padding: 16,
     borderRadius: 12,
     alignItems: "center",
     ...Platform.select({
@@ -510,20 +595,20 @@ const styles = StyleSheet.create({
     }),
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#a8a8a8",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   totalAmount: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#4ecca3",
   },
   addButton: {
     backgroundColor: "#4ecca3",
     marginHorizontal: 20,
-    marginBottom: 20,
-    paddingVertical: 16,
+    marginBottom: 12,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
     ...Platform.select({
@@ -541,7 +626,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: "#1a1a2e",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   categoriesList: {
@@ -762,11 +847,11 @@ const styles = StyleSheet.create({
   navigation: {
     flexDirection: "row",
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   navButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: "center",
     backgroundColor: "#16213e",
     marginHorizontal: 4,
@@ -777,10 +862,60 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     color: "#a8a8a8",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   activeNavButtonText: {
     color: "#1a1a2e",
+  },
+  monthSelectorSection: {
+    backgroundColor: "#16213e",
+    margin: 12,
+    padding: 12,
+    borderRadius: 12,
+  },
+  monthSelectorHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  monthSelectorLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ffffff",
+  },
+  expenseCount: {
+    fontSize: 12,
+    color: "#4ecca3",
+    fontWeight: "500",
+  },
+  monthScrollView: {
+    flexGrow: 0,
+  },
+  monthScrollContent: {
+    paddingHorizontal: 4,
+  },
+  monthOption: {
+    backgroundColor: "#1a1a2e",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#333366",
+  },
+  selectedMonthOption: {
+    backgroundColor: "#4ecca3",
+    borderColor: "#4ecca3",
+  },
+  monthOptionText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  selectedMonthText: {
+    color: "#1a1a2e",
+    fontWeight: "bold",
   },
 });
