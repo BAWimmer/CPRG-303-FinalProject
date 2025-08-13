@@ -17,6 +17,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { ExpenseService } from "../services/expenseService";
 import { Income, IncomeService } from "../services/incomeService";
 
+// Define income sources and their icons/colors
 const INCOME_SOURCES = [
   { name: "Salary", icon: "💼", color: "#4ecca3" },
   { name: "Freelance", icon: "💻", color: "#45b7d1" },
@@ -27,6 +28,7 @@ const INCOME_SOURCES = [
   { name: "Other", icon: "💰", color: "#a8a8a8" },
 ];
 
+// Define frequency options for income
 const FREQUENCY_OPTIONS = [
   { value: "one-time", label: "One Time" },
   { value: "weekly", label: "Weekly" },
@@ -92,6 +94,7 @@ export default function IncomePage() {
     setExpandedSources(initialExpanded);
   }, []);
 
+  // Load income data for the user
   const loadIncome = async () => {
     if (!user) return;
 
@@ -107,6 +110,7 @@ export default function IncomePage() {
     }
   };
 
+  // Load expenses for the user and calculate total expenses for the selected month
   const loadExpenses = async () => {
     if (!user) return;
 
@@ -130,6 +134,7 @@ export default function IncomePage() {
     }
   };
 
+  // Group incomes by source for the selected month
   const getIncomeBySource = () => {
     // Filter incomes by selected month
     const filteredIncomes = incomes.filter((income) => {
@@ -148,6 +153,7 @@ export default function IncomePage() {
       {} as Record<string, Income[]>
     );
 
+    // return array of income sources with their incomes and totals
     return INCOME_SOURCES.map((source) => ({
       ...source,
       incomes: grouped[source.name] || [],
@@ -158,6 +164,7 @@ export default function IncomePage() {
     })).filter((source) => source.incomes.length > 0);
   };
 
+  // Calculate total income for the selected month
   const getTotalIncome = () => {
     // Filter incomes by selected month for total calculation
     const filteredIncomes = incomes.filter((income) => {
@@ -167,11 +174,13 @@ export default function IncomePage() {
     return filteredIncomes.reduce((total, income) => total + income.amount, 0);
   };
 
+  // Calculate net income
   const getNetIncome = () => {
     const totalIncome = getTotalIncome();
     return totalIncome - totalExpenses;
   };
 
+  // Generate options for the month selector
   const getMonthOptions = () => {
     const months = [];
     const currentDate = new Date();
@@ -203,6 +212,7 @@ export default function IncomePage() {
     });
   };
 
+  // Handle income deletion
   const handleDeleteIncome = async (incomeId: string) => {
     if (!incomeId) return;
 
@@ -229,6 +239,7 @@ export default function IncomePage() {
     );
   };
 
+  // Toggle source section expansion 
   const toggleSource = (sourceName: string) => {
     setExpandedSources((prev) => ({
       ...prev,
@@ -236,17 +247,20 @@ export default function IncomePage() {
     }));
   };
 
+  // Handle saving income (add or update)
   const handleSaveIncome = async () => {
     if (!user) {
       Alert.alert("Error", "You must be logged in to save income");
       return;
     }
 
+    // Validate form data
     if (!formData.description.trim() || !formData.amount.trim()) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
+    // Validate amount
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
       Alert.alert("Error", "Please enter a valid amount");
@@ -313,6 +327,7 @@ export default function IncomePage() {
     }
   };
 
+  // Handle editing income
   const handleEditIncome = (income: Income) => {
     setEditingIncome(income);
     setFormData({
@@ -324,6 +339,7 @@ export default function IncomePage() {
     setIsModalVisible(true);
   };
 
+  // Handle logout
   const handleLogout = async () => {
     try {
       console.log("Attempting to logout from income page...");
@@ -335,6 +351,7 @@ export default function IncomePage() {
     }
   };
 
+  // Render income item
   const renderIncomeItem = ({ item }: { item: Income }) => (
     <View style={styles.incomeItem}>
       <View style={styles.incomeInfo}>
