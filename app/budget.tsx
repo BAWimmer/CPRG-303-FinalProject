@@ -43,6 +43,10 @@ export default function BudgetPage() {
     null
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [budgetMode, setBudgetMode] = useState<"category" | "total">(
+    "category"
+  );
+  const [totalBudgetAmount, setTotalBudgetAmount] = useState("");
   const [categoryBudgets, setCategoryBudgets] = useState<{
     [key: string]: string;
   }>({});
@@ -87,13 +91,21 @@ export default function BudgetPage() {
         );
         setBudgetSummary(summary);
 
-        // Set form data
-        const categoryBudgetStrings: { [key: string]: string } = {};
-        Object.keys(monthBudget.categoryBudgets).forEach((category) => {
-          categoryBudgetStrings[category] =
-            monthBudget.categoryBudgets[category].toString();
-        });
-        setCategoryBudgets(categoryBudgetStrings);
+        // Set form data and budget mode
+        const storedMode = (monthBudget as any).budgetMode || "category";
+        setBudgetMode(storedMode);
+
+        if (storedMode === "category") {
+          const categoryBudgetStrings: { [key: string]: string } = {};
+          Object.keys(monthBudget.categoryBudgets).forEach((category) => {
+            categoryBudgetStrings[category] =
+              monthBudget.categoryBudgets[category].toString();
+          });
+          setCategoryBudgets(categoryBudgetStrings);
+        } else {
+          // Total mode
+          setTotalBudgetAmount(monthBudget.totalBudget.toString());
+        }
       } else {
         // Initialize empty budget
         setBudgetSummary(null);
@@ -118,20 +130,33 @@ export default function BudgetPage() {
     }
 
     try {
-      const categoryBudgetNumbers: { [key: string]: number } = {};
+      let categoryBudgetNumbers: { [key: string]: number } = {};
       let totalBudget = 0;
 
-      Object.keys(categoryBudgets).forEach((category) => {
-        const amount = parseFloat(categoryBudgets[category] || "0");
-        categoryBudgetNumbers[category] = isNaN(amount) ? 0 : amount;
-        totalBudget += categoryBudgetNumbers[category];
-      });
+      if (budgetMode === "category") {
+        // Calculate from category budgets
+        Object.keys(categoryBudgets).forEach((category) => {
+          const amount = parseFloat(categoryBudgets[category] || "0");
+          categoryBudgetNumbers[category] = isNaN(amount) ? 0 : amount;
+          totalBudget += categoryBudgetNumbers[category];
+        });
+      } else {
+        // Use total budget mode - distribute evenly across categories
+        totalBudget = parseFloat(totalBudgetAmount || "0");
+        if (isNaN(totalBudget)) totalBudget = 0;
+
+        // Initialize all categories with 0 for total budget mode
+        EXPENSE_CATEGORIES.forEach((category) => {
+          categoryBudgetNumbers[category.name] = 0;
+        });
+      }
 
       const budgetData = {
         userId: user.uid,
         month: currentMonth,
-        totalBudget, 
+        totalBudget,
         categoryBudgets: categoryBudgetNumbers,
+        budgetMode, // Store the budget mode
       };
 
       await BudgetService.setBudget(budgetData);
@@ -145,12 +170,25 @@ export default function BudgetPage() {
 
   const openBudgetModal = () => {
     if (budget) {
-      const categoryBudgetStrings: { [key: string]: string } = {};
-      Object.keys(budget.categoryBudgets).forEach((category) => {
-        categoryBudgetStrings[category] =
-          budget.categoryBudgets[category].toString();
-      });
-      setCategoryBudgets(categoryBudgetStrings);
+      // Check if budget has a stored mode, otherwise default to category
+      const storedMode = (budget as any).budgetMode || "category";
+      setBudgetMode(storedMode);
+
+      if (storedMode === "category") {
+        const categoryBudgetStrings: { [key: string]: string } = {};
+        Object.keys(budget.categoryBudgets).forEach((category) => {
+          categoryBudgetStrings[category] =
+            budget.categoryBudgets[category].toString();
+        });
+        setCategoryBudgets(categoryBudgetStrings);
+      } else {
+        // Total mode - set the total budget amount
+        setTotalBudgetAmount(budget.totalBudget.toString());
+      }
+    } else {
+      // New budget - default to category mode
+      setBudgetMode("category");
+      setTotalBudgetAmount("");
     }
     setIsModalVisible(true);
   };
@@ -296,61 +334,95 @@ export default function BudgetPage() {
             {/* Category Breakdown */}
             {budgetSummary && (
               <View style={styles.categoriesSection}>
-                <Text style={styles.sectionTitle}>Category Breakdown</Text>
-                {EXPENSE_CATEGORIES.map((category) => {
-                  const categoryData =
-                    budgetSummary.categoryBreakdown[category.name];
-                  if (!categoryData || categoryData.budgeted === 0) return null;
+                <Text style={styles.sectionTitle}>
+                  {budgetMode === "category"
+                    ? "Category Breakdown"
+                    : "Spending Overview"}
+                </Text>
+                {budgetMode === "category"
+                  ? // Show detailed category breakdown for category mode
+                    EXPENSE_CATEGORIES.map((category) => {
+                      const categoryData =
+                        budgetSummary.categoryBreakdown[category.name];
+                      if (!categoryData || categoryData.budgeted === 0)
+                        return null;
 
-                  return (
-                    <View key={category.name} style={styles.categoryCard}>
-                      <View style={styles.categoryHeader}>
-                        <View style={styles.categoryInfo}>
-                          <Text style={styles.categoryIcon}>
-                            {category.icon}
-                          </Text>
-                          <Text style={styles.categoryName}>
-                            {category.name}
+                      return (
+                        <View key={category.name} style={styles.categoryCard}>
+                          <View style={styles.categoryHeader}>
+                            <View style={styles.categoryInfo}>
+                              <Text style={styles.categoryIcon}>
+                                {category.icon}
+                              </Text>
+                              <Text style={styles.categoryName}>
+                                {category.name}
+                              </Text>
+                            </View>
+                            <View style={styles.categoryAmounts}>
+                              <Text style={styles.categorySpent}>
+                                ${categoryData.spent.toFixed(2)}
+                              </Text>
+                              <Text style={styles.categoryBudgeted}>
+                                / ${categoryData.budgeted.toFixed(2)}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.categoryProgressBar}>
+                            <View
+                              style={[
+                                styles.categoryProgressFill,
+                                {
+                                  width: `${Math.min(categoryData.percentageUsed, 100)}%`,
+                                  backgroundColor: getProgressColor(
+                                    categoryData.percentageUsed
+                                  ),
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.categoryProgressText,
+                              {
+                                color: getProgressColor(
+                                  categoryData.percentageUsed
+                                ),
+                              },
+                            ]}
+                          >
+                            {categoryData.percentageUsed.toFixed(1)}% used • $
+                            {categoryData.remaining.toFixed(2)} remaining
                           </Text>
                         </View>
-                        <View style={styles.categoryAmounts}>
-                          <Text style={styles.categorySpent}>
-                            ${categoryData.spent.toFixed(2)}
-                          </Text>
-                          <Text style={styles.categoryBudgeted}>
-                            / ${categoryData.budgeted.toFixed(2)}
-                          </Text>
+                      );
+                    })
+                  : // Show simplified spending overview for total budget mode
+                    EXPENSE_CATEGORIES.map((category) => {
+                      const categoryData =
+                        budgetSummary.categoryBreakdown[category.name];
+                      if (!categoryData || categoryData.spent === 0)
+                        return null;
+
+                      return (
+                        <View key={category.name} style={styles.categoryCard}>
+                          <View style={styles.categoryHeader}>
+                            <View style={styles.categoryInfo}>
+                              <Text style={styles.categoryIcon}>
+                                {category.icon}
+                              </Text>
+                              <Text style={styles.categoryName}>
+                                {category.name}
+                              </Text>
+                            </View>
+                            <View style={styles.categoryAmounts}>
+                              <Text style={styles.categorySpent}>
+                                ${categoryData.spent.toFixed(2)}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
-                      </View>
-                      <View style={styles.categoryProgressBar}>
-                        <View
-                          style={[
-                            styles.categoryProgressFill,
-                            {
-                              width: `${Math.min(categoryData.percentageUsed, 100)}%`,
-                              backgroundColor: getProgressColor(
-                                categoryData.percentageUsed
-                              ),
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          styles.categoryProgressText,
-                          {
-                            color: getProgressColor(
-                              categoryData.percentageUsed
-                            ),
-                          },
-                        ]}
-                      >
-                        {categoryData.percentageUsed.toFixed(1)}% used • $
-                        {categoryData.remaining.toFixed(2)} remaining
-                      </Text>
-                    </View>
-                  );
-                })}
+                      );
+                    })}
               </View>
             )}
 
@@ -385,39 +457,98 @@ export default function BudgetPage() {
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {/* Budget Mode Toggle */}
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Total Monthly Budget</Text>
-              <Text style={styles.totalBudgetText}>
-                $
-                {Object.values(categoryBudgets)
-                  .map((val) => parseFloat(val) || 0)
-                  .reduce((acc, cur) => acc + cur, 0)
-                  .toFixed(2)}
-              </Text>
+              <Text style={styles.formLabel}>Budget Mode</Text>
+              <View style={styles.budgetModeToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.budgetModeOption,
+                    budgetMode === "category" && styles.budgetModeActive,
+                  ]}
+                  onPress={() => setBudgetMode("category")}
+                >
+                  <Text
+                    style={[
+                      styles.budgetModeText,
+                      budgetMode === "category" && styles.budgetModeActiveText,
+                    ]}
+                  >
+                    By Category
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.budgetModeOption,
+                    budgetMode === "total" && styles.budgetModeActive,
+                  ]}
+                  onPress={() => setBudgetMode("total")}
+                >
+                  <Text
+                    style={[
+                      styles.budgetModeText,
+                      budgetMode === "total" && styles.budgetModeActiveText,
+                    ]}
+                  >
+                    Total Only
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <Text style={styles.formLabel}>Category Budgets</Text>
-            {EXPENSE_CATEGORIES.map((category) => (
-              <View key={category.name} style={styles.categoryBudgetRow}>
-                <View style={styles.categoryBudgetInfo}>
-                  <Text style={styles.categoryBudgetIcon}>{category.icon}</Text>
-                  <Text style={styles.categoryBudgetName}>{category.name}</Text>
+            {budgetMode === "category" ? (
+              <>
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Total Monthly Budget</Text>
+                  <Text style={styles.totalBudgetText}>
+                    $
+                    {Object.values(categoryBudgets)
+                      .map((val) => parseFloat(val) || 0)
+                      .reduce((acc, cur) => acc + cur, 0)
+                      .toFixed(2)}
+                  </Text>
                 </View>
+
+                <Text style={styles.formLabel}>Category Budgets</Text>
+                {EXPENSE_CATEGORIES.map((category) => (
+                  <View key={category.name} style={styles.categoryBudgetRow}>
+                    <View style={styles.categoryBudgetInfo}>
+                      <Text style={styles.categoryBudgetIcon}>
+                        {category.icon}
+                      </Text>
+                      <Text style={styles.categoryBudgetName}>
+                        {category.name}
+                      </Text>
+                    </View>
+                    <TextInput
+                      style={styles.categoryBudgetInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#666"
+                      value={categoryBudgets[category.name] || ""}
+                      onChangeText={(text) =>
+                        setCategoryBudgets((prev) => ({
+                          ...prev,
+                          [category.name]: text,
+                        }))
+                      }
+                      keyboardType="numeric"
+                    />
+                  </View>
+                ))}
+              </>
+            ) : (
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Total Monthly Budget</Text>
                 <TextInput
-                  style={styles.categoryBudgetInput}
-                  placeholder="0.00"
+                  style={styles.totalBudgetInput}
+                  placeholder="Enter your total monthly budget"
                   placeholderTextColor="#666"
-                  value={categoryBudgets[category.name] || ""}
-                  onChangeText={(text) =>
-                    setCategoryBudgets((prev) => ({
-                      ...prev,
-                      [category.name]: text,
-                    }))
-                  }
+                  value={totalBudgetAmount}
+                  onChangeText={setTotalBudgetAmount}
                   keyboardType="numeric"
                 />
               </View>
-            ))}
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -724,6 +855,42 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   totalBudgetText: {
+    backgroundColor: "#16213e",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#2a3a5c",
+  },
+  budgetModeToggle: {
+    flexDirection: "row",
+    backgroundColor: "#16213e",
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: "#2a3a5c",
+  },
+  budgetModeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  budgetModeActive: {
+    backgroundColor: "#4ecca3",
+  },
+  budgetModeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#a8a8a8",
+  },
+  budgetModeActiveText: {
+    color: "#1a1a2e",
+  },
+  totalBudgetInput: {
     backgroundColor: "#16213e",
     borderRadius: 12,
     paddingHorizontal: 16,

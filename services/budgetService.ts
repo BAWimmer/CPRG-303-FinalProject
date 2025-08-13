@@ -1,14 +1,14 @@
 import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { firestore } from '../config/firebaseConfig';
 
@@ -20,6 +20,7 @@ export interface Budget {
   categoryBudgets: {
     [category: string]: number;
   };
+  budgetMode?: "category" | "total"; // Added budget mode
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }

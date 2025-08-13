@@ -47,6 +47,9 @@ export default function IncomePage() {
     amount: "",
     frequency: "monthly",
   });
+  const [expandedSources, setExpandedSources] = useState<
+    Record<string, boolean>
+  >({});
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -62,6 +65,14 @@ export default function IncomePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const initialExpanded: Record<string, boolean> = {};
+    INCOME_SOURCES.forEach((source) => {
+      initialExpanded[source.name] = false;
+    });
+    setExpandedSources(initialExpanded);
+  }, []);
+
   const loadIncome = async () => {
     if (!user) return;
 
@@ -75,13 +86,6 @@ export default function IncomePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getSourceData = (sourceName: string) => {
-    return (
-      INCOME_SOURCES.find((source) => source.name === sourceName) ||
-      INCOME_SOURCES[INCOME_SOURCES.length - 1]
-    );
   };
 
   const getIncomeBySource = () => {
@@ -133,6 +137,13 @@ export default function IncomePage() {
         },
       ]
     );
+  };
+
+  const toggleSource = (sourceName: string) => {
+    setExpandedSources((prev) => ({
+      ...prev,
+      [sourceName]: !prev[sourceName],
+    }));
   };
 
   const handleSaveIncome = async () => {
@@ -225,7 +236,6 @@ export default function IncomePage() {
       console.log("Attempting to logout from income page...");
       await signOut();
       console.log("Logout successful.");
-      // Navigation will be handled by useEffect when user becomes null
     } catch (error: any) {
       console.error("Logout error:", error);
       Alert.alert("Error", `Failed to logout: ${error.message}`);
@@ -263,12 +273,23 @@ export default function IncomePage() {
 
   const renderSourceSection = ({ item }: { item: any }) => (
     <View style={styles.sourceSection}>
-      <View style={[styles.sourceHeader, { backgroundColor: item.color }]}>
-        <Text style={styles.sourceIcon}>{item.icon}</Text>
-        <Text style={styles.sourceName}>{item.name}</Text>
-        <Text style={styles.sourceTotal}>+${item.total.toFixed(2)}</Text>
-      </View>
-      {item.incomes.length > 0 && (
+      <TouchableOpacity
+        style={[styles.sourceHeader, { backgroundColor: item.color + "20" }]}
+        onPress={() => toggleSource(item.name)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.sourceInfo}>
+          <Text style={styles.sourceArrow}>
+            {expandedSources[item.name] ? "▾" : "►"}
+          </Text>
+          <Text style={styles.sourceIcon}>{item.icon}</Text>
+          <Text style={styles.sourceName}>{item.name}</Text>
+        </View>
+        <Text style={[styles.sourceTotal, { color: item.color }]}>
+          +${item.total.toFixed(2)}
+        </Text>
+      </TouchableOpacity>
+      {expandedSources[item.name] && item.incomes.length > 0 && (
         <FlatList
           data={item.incomes}
           renderItem={renderIncomeItem}
@@ -601,6 +622,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
+    borderRadius: 12,
+  },
+  sourceInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  sourceArrow: {
+    fontSize: 16,
+    color: "#666",
+    marginRight: 8,
+    width: 20,
   },
   sourceIcon: {
     fontSize: 24,
@@ -610,12 +643,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1a1a2e",
+    color: "#ffffff",
   },
   sourceTotal: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#1a1a2e",
   },
   incomeItem: {
     flexDirection: "row",

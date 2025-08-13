@@ -4,14 +4,16 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList, KeyboardAvoidingView, Modal,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { ExpenseService } from "../services/expenseService";
@@ -46,7 +48,9 @@ export default function ExpensesPage() {
     description: "",
     amount: "",
   });
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >({});
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -78,17 +82,10 @@ export default function ExpensesPage() {
   };
 
   const toggleCategory = (categoryName: string) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
       [categoryName]: !prev[categoryName],
     }));
-  };
-
-  const getCategoryData = (categoryName: string) => {
-    return (
-      CATEGORIES.find((cat) => cat.name === categoryName) ||
-      CATEGORIES[CATEGORIES.length - 1]
-    );
   };
 
   const getExpensesByCategory = () => {
@@ -223,7 +220,6 @@ export default function ExpensesPage() {
   };
 
   const handleLogout = async () => {
-    console.log("Logout button pressed");
     try {
       console.log("Attempting to logout from expenses page...");
       await signOut();
@@ -266,9 +262,10 @@ export default function ExpensesPage() {
       <TouchableOpacity
         style={[
           styles.categoryHeader,
-          {backgroundColor: category.color + "20" }]}
-          onPress={() => toggleCategory(category.name)}
-          activeOpacity={0.7}
+          { backgroundColor: category.color + "20" },
+        ]}
+        onPress={() => toggleCategory(category.name)}
+        activeOpacity={0.7}
       >
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryArrow}>
@@ -281,7 +278,7 @@ export default function ExpensesPage() {
           ${category.total.toFixed(2)}
         </Text>
       </TouchableOpacity>
-      
+
       {expandedCategories[category.name] ? (
         category.expenses.length > 0 ? (
           <FlatList
@@ -372,7 +369,8 @@ export default function ExpensesPage() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{flex: 1, justifyContent: "flex-end"}} >
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>
