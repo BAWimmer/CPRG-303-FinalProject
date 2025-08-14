@@ -160,13 +160,6 @@ export default function ExpensesPage() {
     });
   };
 
-  const getExpensesCountForMonth = () => {
-    return expenses.filter((expense) => {
-      const expenseMonth = expense.date.slice(0, 7);
-      return expenseMonth === selectedMonth;
-    }).length;
-  };
-
   const handleAddExpense = () => {
     setEditingExpense(null);
     setFormData({ category: "Food & Dining", description: "", amount: "" });
